@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forex Session Tracker</title>
+  <!-- Dynamic Favicon Generation -->
+  <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322c55e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><polyline points='12 6 12 12 16 14'/></svg>">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              900: '#14532d',
+            },
+            cream: {
+              bg: '#fcfbf7',
+              card: '#ffffff',
+              cardAlt: '#f6f4ee',
+              border: '#e8e4d9',
+              subtle: '#ded9cb',
+              text: '#2d2b26',
+              muted: '#787367'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Google Fonts & Lucide Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(232, 228, 217, 0.5);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(180, 175, 160, 0.8);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(140, 135, 120, 1);
+    }
+    /* Micro subtle glows */
+    .glow-active {
+      box-shadow: 0 0 25px -5px rgba(34, 197, 94, 0.15);
+    }
+    .glow-ny-london {
+      box-shadow: 0 0 25px -5px rgba(234, 179, 8, 0.2);
+    }
+  </style>
+</head>
+<body class="bg-cream-bg text-cream-text min-h-screen transition-colors duration-300 flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+
+  <!-- TOP NAVBAR -->
+  <nav class="sticky top-0 z-30 backdrop-blur-md bg-cream-bg/90 border-b border-cream-border px-4 sm:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+    <!-- Brand -->
+    <div class="flex items-center gap-3">
+      <div class="p-2 rounded-xl bg-brand-500/10 text-brand-500 border border-brand-500/20 flex items-center justify-center">
+        <!-- Clock Logo Icon -->
+        <i data-lucide="clock" class="w-5 h-5 text-brand-500"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-lg leading-tight tracking-tight flex items-center gap-2 text-slate-900">
+          Forex Session Tracker
+          
+        </h1>
+         </div>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="flex items-center gap-2 sm:gap-3 ml-auto">
+      <!-- Timezone Selector -->
+      <div class="relative min-w-[200px] sm:min-w-[240px]">
+        <i data-lucide="globe" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-cream-muted pointer-events-none z-10"></i>
+        <select id="timezone-select" class="w-full pl-9 pr-8 py-1.5 text-xs sm:text-sm font-medium rounded-lg bg-cream-card border border-cream-border text-cream-text focus:outline-none focus:ring-2 focus:ring-brand-500 appearance-none cursor-pointer shadow-sm">
+          <!-- Timezones populated by JS -->
+        </select>
+        <i data-lucide="chevron-down" class="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-cream-muted pointer-events-none"></i>
+      </div>
+
+      <!-- Settings Button -->
+      <button id="open-settings-btn" title="Settings" class="p-2 rounded-lg bg-cream-card border border-cream-border text-cream-text hover:bg-cream-cardAlt transition-colors shadow-sm">
+        <i data-lucide="settings" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 flex-grow">
+
+    <!-- TOP SECTION: LIVE CLOCK & MARKET STATUS BAR -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Live Clock Card -->
+      <div class="lg:col-span-2 bg-cream-card rounded-2xl p-6 border border-cream-border shadow-sm flex flex-col justify-between relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-brand-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-xs font-semibold uppercase tracking-wider text-cream-muted flex items-center gap-1.5">
+            <i data-lucide="clock" class="w-3.5 h-3.5 text-brand-500"></i> Local Selected Time
+          </span>
+          <span id="tz-badge" class="px-2.5 py-1 rounded-full text-xs font-medium bg-cream-cardAlt border border-cream-border text-cream-text flex items-center gap-1.5">
+            <span id="tz-flag">🇧🇩</span> <span id="tz-label">Dhaka · UTC+6</span>
+          </span>
+        </div>
+
+        <div class="my-auto">
+          <div id="live-clock-time" class="text-4xl sm:text-5xl lg:text-6xl font-bold font-mono tracking-tight text-slate-900">
+            00:00:00 AM
+          </div>
+          <div id="live-clock-date" class="text-sm sm:text-base font-medium text-cream-muted mt-2">
+            Loading date...
+          </div>
+        </div>
+      </div>
+
+      <!-- Market Status Overview Card -->
+      <div id="market-status-card" class="bg-cream-card rounded-2xl p-6 border border-cream-border shadow-sm flex flex-col justify-between relative overflow-hidden">
+        <!-- Dynamic content injected via JS -->
+      </div>
+    </div>
+
+    <!-- CURRENT & NEXT SESSION GRID -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Current Session Card -->
+      <div id="current-session-container" class="bg-cream-card rounded-2xl p-6 border border-cream-border shadow-sm flex flex-col justify-between">
+        <!-- Dynamic injected content -->
+      </div>
+
+      <!-- Next Session Card -->
+      <div id="next-session-container" class="bg-cream-card rounded-2xl p-6 border border-cream-border shadow-sm flex flex-col justify-between">
+        <!-- Dynamic injected content -->
+      </div>
+    </div>
+
+    <!-- SESSION OVERLAPS HIGHLIGHT -->
+    <div id="session-overlaps-container" class="bg-cream-card rounded-2xl p-6 border border-cream-border shadow-sm">
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-cream-muted mb-4 flex items-center gap-2">
+        <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i> Active & Upcoming Session Overlaps
+      </h3>
+      <div id="overlaps-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Dynamic Overlaps -->
+      </div>
+    </div>
+
+    <!-- FULL-DAY TIMELINE -->
+    <div class="bg-cream-card rounded-2xl p-6 border border-cream-border shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-cream-muted flex items-center gap-2">
+            <i data-lucide="bar-chart-3" class="w-4 h-4 text-brand-500"></i> 24-Hour Session Visualizer
+          </h3>
+          <p class="text-xs text-cream-muted mt-0.5">Timeline displayed in chosen timezone format (12-Hour AM/PM)</p>
+        </div>
+        <div class="flex items-center gap-3 text-xs text-cream-muted">
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-brand-500"></span> Active</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Overlap</span>
+          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-cream-subtle"></span> Closed</span>
+        </div>
+      </div>
+
+      <!-- Scrollable Timeline Wrapper -->
+      <div class="overflow-x-auto pb-2 pt-2">
+        <div class="min-w-[700px] relative">
+          <!-- Time Grid Labels (12 AM, 4 AM, 8 AM...) -->
+          <div class="grid grid-cols-6 text-[11px] font-mono font-medium text-cream-muted border-b border-cream-border pb-2 mb-3">
+            <div>12:00 AM</div>
+            <div>4:00 AM</div>
+            <div>8:00 AM</div>
+            <div>12:00 PM</div>
+            <div>4:00 PM</div>
+            <div>8:00 PM</div>
+          </div>
+
+          <!-- Timeline Rows -->
+          <div id="timeline-rows" class="space-y-3 relative">
+            <!-- Injected by JS -->
+          </div>
+
+          <!-- Current Time Indicator Needle -->
+          <div id="timeline-now-line" class="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10 pointer-events-none transition-all duration-1000 hidden">
+            <div class="w-2.5 h-2.5 rounded-full bg-red-500 -ml-[4px] -top-1 relative shadow-sm"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALL FOREX SESSIONS CARDS GRID -->
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-cream-muted flex items-center gap-2">
+          <i data-lucide="globe-2" class="w-4 h-4 text-brand-500"></i> Major Global Forex Markets
+        </h3>
+        <span class="text-xs text-cream-muted">Automatically adjusted for local Daylight Saving Time (DST)</span>
+      </div>
+
+      <div id="sessions-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <!-- 4 Major Sessions + Custom Sessions dynamically injected -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-cream-border py-4 text-center text-xs text-cream-muted">
+    <p>Forex Market Session Tracker Pro · 12-Hour AM/PM Real-Time Dashboard</p>
+  </footer>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-cream-card border border-cream-border rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-cream-border pb-4">
+        <h2 class="text-lg font-bold flex items-center gap-2 text-slate-900">
+          <i data-lucide="sliders" class="w-5 h-5 text-brand-500"></i> Dashboard Preferences
+        </h2>
+        <button id="close-settings-btn" class="p-1 rounded-lg text-cream-muted hover:text-slate-900 hover:bg-cream-cardAlt">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Visible Sessions Filter -->
+      <div class="space-y-2">
+        <label class="text-xs font-semibold uppercase text-cream-muted">Visible Sessions</label>
+        <div id="visible-sessions-checklist" class="space-y-2 bg-cream-cardAlt p-3 rounded-xl border border-cream-border">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Custom Sessions Management -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-semibold uppercase text-cream-muted">Custom Trading Sessions</label>
+          <button id="open-add-custom-btn" class="text-xs text-brand-500 hover:text-brand-600 font-semibold flex items-center gap-1">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add New
+          </button>
+        </div>
+        <div id="custom-sessions-list" class="space-y-2">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-cream-border flex justify-end">
+        <button id="save-settings-btn" class="px-5 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm transition-colors shadow-sm">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD/EDIT CUSTOM SESSION MODAL -->
+  <div id="custom-session-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+    <form id="custom-session-form" class="bg-cream-card border border-cream-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-cream-border pb-3">
+        <h3 class="font-bold text-base text-slate-900" id="custom-modal-title">Create Custom Session</h3>
+        <button type="button" id="close-custom-modal-btn" class="text-cream-muted hover:text-slate-900">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <input type="hidden" id="cs-id" value="">
+
+      <div>
+        <label class="block text-xs font-medium text-cream-muted mb-1">Session Name</label>
+        <input type="text" id="cs-name" required placeholder="e.g., Frankfurt Scalping, Asian Killzone" class="w-full px-3 py-2 rounded-xl bg-cream-cardAlt border border-cream-border text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-cream-muted mb-1">Start Time (24h input)</label>
+          <input type="time" id="cs-start" required class="w-full px-3 py-2 rounded-xl bg-cream-cardAlt border border-cream-border text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-cream-muted mb-1">End Time (24h input)</label>
+          <input type="time" id="cs-end" required class="w-full px-3 py-2 rounded-xl bg-cream-cardAlt border border-cream-border text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-cream-muted mb-1">Session Timezone</label>
+        <select id="cs-timezone" class="w-full px-3 py-2 rounded-xl bg-cream-cardAlt border border-cream-border text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <!-- Populated by JS -->
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-cream-muted mb-1">Description / Strategy Note</label>
+        <textarea id="cs-desc" rows="2" placeholder="e.g., High volatility setup window" class="w-full px-3 py-2 rounded-xl bg-cream-cardAlt border border-cream-border text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"></textarea>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button type="button" id="cancel-custom-modal-btn" class="px-4 py-2 rounded-xl border border-cream-border text-xs font-semibold text-cream-text">
+          Cancel
+        </button>
+        <button type="submit" class="px-4 py-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold">
+          Save Custom Session
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- SESSION DETAILS MODAL -->
+  <div id="details-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="bg-cream-card border border-cream-border rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between border-b border-cream-border pb-3">
+        <div class="flex items-center gap-3">
+          <span id="det-flag" class="text-3xl">🇺🇸</span>
+          <div>
+            <h2 id="det-title" class="font-bold text-lg text-slate-900 leading-none">New York Session</h2>
+            <span id="det-region" class="text-xs text-cream-muted">United States</span>
+          </div>
+        </div>
+        <button id="close-details-btn" class="p-1 rounded-lg text-cream-muted hover:text-slate-900">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Status Pill & Countdown -->
+      <div class="flex items-center justify-between p-3 rounded-xl bg-cream-cardAlt border border-cream-border">
+        <div>
+          <span class="text-[10px] uppercase font-bold text-cream-muted block">Current Status</span>
+          <span id="det-status-badge" class="font-bold text-sm text-brand-500 flex items-center gap-1.5 mt-0.5">
+            ● OPEN
+          </span>
+        </div>
+        <div class="text-right">
+          <span id="det-timer-label" class="text-[10px] uppercase font-bold text-cream-muted block">Closes In</span>
+          <span id="det-timer-val" class="font-mono font-bold text-base text-slate-900">04:12:30</span>
+        </div>
+      </div>
+
+      <!-- Key Metrics Matrix -->
+      <div class="grid grid-cols-2 gap-3 text-xs">
+        <div class="p-3 rounded-xl bg-cream-cardAlt border border-cream-border">
+          <span class="text-cream-muted block mb-1">Local Session Schedule</span>
+          <span id="det-time-local" class="font-semibold text-slate-800">8:00 AM — 5:00 PM</span>
+        </div>
+        <div class="p-3 rounded-xl bg-cream-cardAlt border border-cream-border">
+          <span class="text-cream-muted block mb-1">Target Market Timezone</span>
+          <span id="det-tz-market" class="font-semibold text-slate-800">America/New_York</span>
+        </div>
+        <div class="p-3 rounded-xl bg-cream-cardAlt border border-cream-border">
+          <span class="text-cream-muted block mb-1">Liquidity & Importance</span>
+          <span id="det-liquidity" class="font-semibold text-slate-800">High / Primary</span>
+        </div>
+        <div class="p-3 rounded-xl bg-cream-cardAlt border border-cream-border">
+          <span class="text-cream-muted block mb-1">Major Traded Currencies</span>
+          <div id="det-currencies" class="flex flex-wrap gap-1 font-mono font-medium">
+            <span class="px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-500 text-[10px]">USD</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div>
+        <span class="text-xs font-semibold uppercase text-cream-muted block mb-1">Market Dynamics</span>
+        <p id="det-desc" class="text-xs text-cream-text leading-relaxed bg-cream-cardAlt p-3 rounded-xl border border-cream-border">
+          Description...
+        </p>
+      </div>
+
+      <div class="pt-2 flex justify-end">
+        <button id="close-details-btn-2" class="px-4 py-2 rounded-xl bg-cream-cardAlt hover:bg-cream-border text-xs font-semibold">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION LOGIC & DST ACCURATE TIME ENGINE -->
+  <script>
+    // --- 1. CORE CONFIG & CONSTANTS ---
+    const TIMEZONES = [
+      { id: 'Asia/Dhaka', label: '🇧🇩 Bangladesh — Dhaka', flag: '🇧🇩' },
+      { id: 'Europe/London', label: '🇬🇧 UK — London', flag: '🇬🇧' },
+      { id: 'America/New_York', label: '🇺🇸 USA — New York', flag: '🇺🇸' },
+      { id: 'Asia/Tokyo', label: '🇯🇵 Japan — Tokyo', flag: '🇯🇵' },
+      { id: 'Australia/Sydney', label: '🇦🇺 Australia — Sydney', flag: '🇦🇺' },
+      { id: 'Europe/Berlin', label: '🇩🇪 Germany — Berlin', flag: '🇩🇪' },
+      { id: 'Asia/Singapore', label: '🇸🇬 Singapore', flag: '🇸🇬' },
+      { id: 'UTC', label: '🌐 UTC Standard Time', flag: '🌐' },
+      { id: 'America/Los_Angeles', label: '🇺🇸 USA — Pacific (LA)', flag: '🇺🇸' },
+      { id: 'Asia/Dubai', label: '🇦🇪 UAE — Dubai', flag: '🇦🇪' },
+      { id: 'Asia/Hong_Kong', label: '🇭🇰 Hong Kong', flag: '🇭🇰' }
+    ];
+
+    // Standard FX sessions specified in their native timezones
+    const STANDARD_SESSIONS = [
+      {
+        id: 'sydney',
+        name: 'Sydney',
+        region: 'Australia',
+        flag: '🇦🇺',
+        timezone: 'Australia/Sydney',
+        openLocalHour: 7, // 7:00 AM local
+        closeLocalHour: 16, // 4:00 PM local
+        currencies: ['AUD', 'NZD'],
+        liquidity: 'Secondary',
+        importance: 'Secondary',
+        description: 'The Sydney session kicks off the global trading day. While lower in volume than London or New York, early liquidity provides key direction for AUD and NZD pairs.',
+        enabled: true
+      },
+      {
+        id: 'tokyo',
+        name: 'Tokyo',
+        region: 'Japan',
+        flag: '🇯🇵',
+        timezone: 'Asia/Tokyo',
+        openLocalHour: 9, // 9:00 AM local
+        closeLocalHour: 18, // 6:00 PM local
+        currencies: ['JPY'],
+        liquidity: 'Moderate',
+        importance: 'Primary',
+        description: 'Represents the Asian session peak. Institutional participants, central banks, and Japanese exporters trade JPY pairs heavily during this timeframe.',
+        enabled: true
+      },
+      {
+        id: 'london',
+        name: 'London',
+        region: 'United Kingdom',
+        flag: '🇬🇧',
+        timezone: 'Europe/London',
+        openLocalHour: 8, // 8:00 AM local
+        closeLocalHour: 17, // 5:00 PM local
+        currencies: ['GBP', 'EUR', 'CHF'],
+        liquidity: 'High',
+        importance: 'Primary',
+        description: 'The largest and most dominant financial center in world Forex. High volatility, massive liquidity, and major market trends originate here.',
+        enabled: true
+      },
+      {
+        id: 'new_york',
+        name: 'New York',
+        region: 'United States',
+        flag: '🇺🇸',
+        timezone: 'America/New_York',
+        openLocalHour: 8, // 8:00 AM local
+        closeLocalHour: 17, // 5:00 PM local
+        currencies: ['USD', 'CAD'],
+        liquidity: 'High',
+        importance: 'Primary',
+        description: 'The second largest trading hub worldwide. Drives USD pricing, Economic Data releases, and equities correlations. Crucial overlap with London.',
+        enabled: true
+      }
+    ];
+
+    // --- 2. STATE MANAGEMENT & LOCAL STORAGE ---
+    let userSettings = {
+      timezone: 'Asia/Dhaka',
+      visibleSessions: ['sydney', 'tokyo', 'london', 'new_york'],
+      customSessions: []
+    };
+
+    function loadSettings() {
+      const saved = localStorage.getItem('fx_tracker_settings_v2');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          userSettings = { ...userSettings, ...parsed };
+        } catch (e) {
+          console.error("Error loading settings", e);
+        }
+      }
+    }
+
+    function saveSettings() {
+      localStorage.setItem('fx_tracker_settings_v2', JSON.stringify(userSettings));
+    }
+
+    // --- 3. TIMEZONE & DST ENGINE ---
+    
+    function formatTo12HourTime(date, timeZone, includeSeconds = false) {
+      const options = {
+        timeZone,
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      };
+      if (includeSeconds) options.second = '2-digit';
+      return new Intl.DateTimeFormat('en-US', options).format(date);
+    }
+
+    function getTimezoneParts(date, timeZone) {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        weekday: 'short',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: false
+      });
+      const parts = formatter.formatToParts(date);
+      const res = {};
+      parts.forEach(p => res[p.type] = p.value);
+      return {
+        weekday: res.weekday,
+        year: parseInt(res.year),
+        month: parseInt(res.month) - 1,
+        day: parseInt(res.day),
+        hours: parseInt(res.hour) === 24 ? 0 : parseInt(res.hour),
+        minutes: parseInt(res.minute),
+        seconds: parseInt(res.second)
+      };
+    }
+
+    function getSessionBoundsInUTC(session, refDate) {
+      const tzParts = getTimezoneParts(refDate, session.timezone);
+
+      const getExactDateForNativeTime = (year, month, day, targetHour, targetMin = 0) => {
+        const mStr = String(month + 1).padStart(2, '0');
+        const dStr = String(day).padStart(2, '0');
+        const hStr = String(targetHour).padStart(2, '0');
+        const minStr = String(targetMin).padStart(2, '0');
+        
+        const testDate = new Date(`${year}-${mStr}-${dStr}T${hStr}:${minStr}:00Z`);
+        const localParts = getTimezoneParts(testDate, session.timezone);
+        const utcTime = testDate.getTime();
+        const localTimeEquivalent = Date.UTC(localParts.year, localParts.month, localParts.day, localParts.hours, localParts.minutes, localParts.seconds);
+        const offsetMs = localTimeEquivalent - utcTime;
+        
+        return new Date(testDate.getTime() - offsetMs);
+      };
+
+      let openUtc, closeUtc;
+
+      if (session.isCustom) {
+        const [sH, sM] = session.startTime.split(':').map(Number);
+        const [eH, eM] = session.endTime.split(':').map(Number);
+
+        openUtc = getExactDateForNativeTime(tzParts.year, tzParts.month, tzParts.day, sH, sM);
+        closeUtc = getExactDateForNativeTime(tzParts.year, tzParts.month, tzParts.day, eH, eM);
+
+        if (closeUtc <= openUtc) {
+          closeUtc = new Date(closeUtc.getTime() + 24 * 60 * 60 * 1000);
+        }
+      } else {
+        openUtc = getExactDateForNativeTime(tzParts.year, tzParts.month, tzParts.day, session.openLocalHour, 0);
+        closeUtc = getExactDateForNativeTime(tzParts.year, tzParts.month, tzParts.day, session.closeLocalHour, 0);
+
+        if (closeUtc <= openUtc) {
+          closeUtc = new Date(closeUtc.getTime() + 24 * 60 * 60 * 1000);
+        }
+      }
+
+      return { openUtc, closeUtc };
+    }
+
+    function getUTCOffsetFormatted(timeZone, refDate) {
+      try {
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone,
+          timeZoneName: 'shortOffset'
+        });
+        const parts = formatter.formatToParts(refDate);
+        const tzName = parts.find(p => p.type === 'timeZoneName')?.value;
+        return tzName || 'UTC';
+      } catch (e) {
+        return 'UTC';
+      }
+    }
+
+    function formatCountdown(ms) {
+      if (ms < 0) ms = 0;
+      const totalSeconds = Math.floor(ms / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      return [hours, minutes, seconds]
+        .map(v => String(v).padStart(2, '0'))
+        .join(':');
+    }
+
+    // --- 4. WEEKEND & MARKET STATUS COMPUTATION ---
+
+    function checkIsWeekendInTimezone(nowDate, userTz) {
+      const parts = getTimezoneParts(nowDate, userTz);
+      return parts.weekday === 'Sat' || parts.weekday === 'Sun';
+    }
+
+    function calculateNextMarketOpenMonday(nowDate, userTz) {
+      const sydneySession = STANDARD_SESSIONS.find(s => s.id === 'sydney');
+      let checkDate = new Date(nowDate.getTime());
+      for (let i = 0; i < 7; i++) {
+        const bounds = getSessionBoundsInUTC(sydneySession, checkDate);
+        const userPartsAtOpen = getTimezoneParts(bounds.openUtc, userTz);
+        
+        if (bounds.openUtc > nowDate && (userPartsAtOpen.weekday === 'Mon' || userPartsAtOpen.weekday === 'Sun')) {
+          const sydneyParts = getTimezoneParts(bounds.openUtc, sydneySession.timezone);
+          if (sydneyParts.weekday === 'Mon') {
+            return {
+              openUtc: bounds.openUtc,
+              session: sydneySession
+            };
+          }
+        }
+        checkDate = new Date(checkDate.getTime() + 24 * 60 * 60 * 1000);
+      }
+
+      return {
+        openUtc: new Date(nowDate.getTime() + 36 * 3600 * 1000),
+        session: sydneySession
+      };
+    }
+
+    // --- 5. RENDER ENGINE & UI UPDATES ---
+
+    function initTimezoneDropdown() {
+      const select = document.getElementById('timezone-select');
+      select.innerHTML = '';
+      TIMEZONES.forEach(tz => {
+        const opt = document.createElement('option');
+        opt.value = tz.id;
+        opt.textContent = `${tz.flag} ${tz.label.replace(/^[^\s]+\s*/, '')}`;
+        if (tz.id === userSettings.timezone) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      select.addEventListener('change', (e) => {
+        userSettings.timezone = e.target.value;
+        saveSettings();
+        updateDashboard();
+      });
+    }
+
+    function updateDashboard() {
+      const now = new Date();
+      const userTz = userSettings.timezone;
+
+      // Force HTML light theme
+      document.documentElement.classList.remove('dark');
+
+      // 1. UPDATE LIVE CLOCK
+      const clockTimeStr = formatTo12HourTime(now, userTz, true);
+      const clockDateStr = new Intl.DateTimeFormat('en-US', {
+        timeZone: userTz,
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      }).format(now);
+
+      document.getElementById('live-clock-time').textContent = clockTimeStr;
+      document.getElementById('live-clock-date').textContent = clockDateStr;
+
+      // Update Navbar Badges
+      const selectedTzObj = TIMEZONES.find(t => t.id === userTz) || { flag: '🌐', label: userTz };
+      document.getElementById('tz-flag').textContent = selectedTzObj.flag;
+      const tzOffsetStr = getUTCOffsetFormatted(userTz, now);
+      const cityOnly = userTz.split('/')[1]?.replace('_', ' ') || userTz;
+      document.getElementById('tz-label').textContent = `${cityOnly} · ${tzOffsetStr}`;
+
+      // Check Weekend Status
+      const isWeekend = checkIsWeekendInTimezone(now, userTz);
+
+      const allActiveSessions = [];
+      const sessionStatuses = [];
+
+      const activeList = [...STANDARD_SESSIONS, ...userSettings.customSessions].filter(s => {
+        return userSettings.visibleSessions.includes(s.id);
+      });
+
+      activeList.forEach(session => {
+        const yesterday = new Date(now.getTime() - 24 * 3600 * 1000);
+        const tomorrow = new Date(now.getTime() + 24 * 3600 * 1000);
+
+        const boundsToday = getSessionBoundsInUTC(session, now);
+        const boundsYesterday = getSessionBoundsInUTC(session, yesterday);
+        const boundsTomorrow = getSessionBoundsInUTC(session, tomorrow);
+
+        let isActive = false;
+        let activeBounds = null;
+
+        if (!isWeekend) {
+          if (now >= boundsToday.openUtc && now < boundsToday.closeUtc) {
+            isActive = true;
+            activeBounds = boundsToday;
+          } else if (now >= boundsYesterday.openUtc && now < boundsYesterday.closeUtc) {
+            isActive = true;
+            activeBounds = boundsYesterday;
+          }
+        }
+
+        if (isActive && activeBounds) {
+          allActiveSessions.push({
+            session,
+            bounds: activeBounds,
+            closesInMs: activeBounds.closeUtc.getTime() - now.getTime(),
+            elapsedMs: now.getTime() - activeBounds.openUtc.getTime(),
+            totalDurationMs: activeBounds.closeUtc.getTime() - activeBounds.openUtc.getTime()
+          });
+        }
+
+        let nextOpen = boundsToday.openUtc;
+        if (now >= boundsToday.closeUtc || (now >= boundsToday.openUtc && !isWeekend)) {
+          nextOpen = boundsTomorrow.openUtc;
+        }
+
+        sessionStatuses.push({
+          session,
+          isActive,
+          activeBounds: activeBounds || boundsToday,
+          nextOpenUtc: nextOpen,
+          opensInMs: nextOpen.getTime() - now.getTime(),
+          closesInMs: activeBounds ? activeBounds.closeUtc.getTime() - now.getTime() : 0
+        });
+      });
+
+      // 2. RENDER MARKET STATUS CARD
+      const statusCard = document.getElementById('market-status-card');
+      if (isWeekend) {
+        const nextMarket = calculateNextMarketOpenMonday(now, userTz);
+        const opensInMs = nextMarket.openUtc.getTime() - now.getTime();
+        const userTzDay = getTimezoneParts(now, userTz).weekday;
+        const currentDayName = userTzDay === 'Sat' ? 'Saturday' : 'Sunday';
+        const openTimeStr = formatTo12HourTime(nextMarket.openUtc, userTz);
+
+        statusCard.className = "bg-cream-card rounded-2xl p-6 border border-amber-500/30 shadow-sm flex flex-col justify-between relative overflow-hidden bg-amber-500/5";
+        statusCard.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-amber-600 flex items-center gap-1.5">
+              <i data-lucide="calendar-off" class="w-4 h-4"></i> Market Status
+            </span>
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+              WEEKEND OFF
+            </span>
+          </div>
+
+          <div class="my-3">
+            <div class="text-xs font-bold uppercase text-cream-muted">MARKET CLOSED</div>
+            <div class="text-xl font-bold text-slate-900">${currentDayName}</div>
+            <p class="text-xs text-cream-muted mt-1">Forex market is closed for the weekend globally.</p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
+            <div>
+              <div class="text-[10px] font-bold uppercase text-amber-700">NEXT MARKET OPEN</div>
+              <div class="text-xs font-semibold text-slate-800">Monday · ${nextMarket.session.name} Session</div>
+              <div class="text-xs text-cream-muted">Opens at ${openTimeStr}</div>
+            </div>
+            <div class="text-right font-mono font-bold text-amber-600 text-sm">
+              ${formatCountdown(opensInMs)}
+            </div>
+          </div>
+        `;
+      } else {
+        const activeCount = allActiveSessions.length;
+        statusCard.className = "bg-cream-card rounded-2xl p-6 border border-cream-border shadow-sm flex flex-col justify-between relative overflow-hidden";
+        statusCard.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-cream-muted flex items-center gap-1.5">
+              <i data-lucide="activity" class="w-4 h-4 text-brand-500"></i> Global Market Status
+            </span>
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20 flex items-center gap-1.5 animate-pulse">
+              <span class="w-2 h-2 rounded-full bg-brand-500"></span> MARKET OPEN
+            </span>
+          </div>
+
+          <div class="my-3">
+            <div class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+              ${activeCount} Active ${activeCount === 1 ? 'Session' : 'Sessions'}
+            </div>
+            <p class="text-xs text-cream-muted mt-1">
+              ${activeCount > 0 ? allActiveSessions.map(a => `${a.session.flag} ${a.session.name}`).join(' · ') : 'Transitioning between trading sessions'}
+            </p>
+          </div>
+
+          <div class="p-3 rounded-xl bg-cream-cardAlt border border-cream-border flex items-center justify-between text-xs">
+            <span class="text-cream-muted">Global Liquidity Status:</span>
+            <span class="font-semibold text-brand-600">
+              ${activeCount >= 2 ? '⚡ High Liquidity Overlap' : activeCount === 1 ? 'Moderate Liquidity' : 'Low / Asian Trading'}
+            </span>
+          </div>
+        `;
+      }
+
+      // 3. RENDER CURRENT SESSION CONTAINER
+      const currentContainer = document.getElementById('current-session-container');
+      if (allActiveSessions.length === 0) {
+        currentContainer.innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-cream-muted">Current Session</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cream-cardAlt text-cream-muted">OFFLINE</span>
+          </div>
+          <div class="my-auto text-center py-6">
+            <div class="w-12 h-12 rounded-full bg-cream-cardAlt border border-cream-border flex items-center justify-center mx-auto text-cream-muted mb-2">
+              <i data-lucide="moon" class="w-6 h-6"></i>
+            </div>
+            <h4 class="font-bold text-base text-slate-800">No Active FX Session Right Now</h4>
+            <p class="text-xs text-cream-muted mt-1">Market is either closed for weekend or between major regional opening hours.</p>
+          </div>
+        `;
+      } else {
+        const primary = allActiveSessions[0];
+        const openTimeStr = formatTo12HourTime(primary.bounds.openUtc, userTz);
+        const closeTimeStr = formatTo12HourTime(primary.bounds.closeUtc, userTz);
+
+        currentContainer.innerHTML = `
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-cream-muted flex items-center gap-1.5">
+              <i data-lucide="play-circle" class="w-4 h-4 text-brand-500"></i> Active Session
+            </span>
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-brand-500/10 text-brand-500 border border-brand-500/20 flex items-center gap-1">
+              ● OPEN
+            </span>
+          </div>
+
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-4xl">${primary.session.flag}</span>
+            <div>
+              <h3 class="text-xl font-bold text-slate-900 leading-tight">${primary.session.name.toUpperCase()}</h3>
+              <p class="text-xs text-cream-muted">${primary.session.region} · ${primary.session.currencies.join(', ')}</p>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-cream-muted">Session Schedule:</span>
+              <span class="font-mono font-semibold text-slate-800">${openTimeStr} — ${closeTimeStr}</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-cream-cardAlt border border-cream-border flex items-center justify-between">
+              <div>
+                <span class="text-[10px] uppercase font-bold text-cream-muted block">Closes In</span>
+                <span class="font-mono font-bold text-lg text-slate-900">${formatCountdown(primary.closesInMs)}</span>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] uppercase font-bold text-cream-muted block">Liquidity</span>
+                <span class="font-semibold text-xs text-brand-600">${primary.session.liquidity || 'Standard'}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // 4. RENDER NEXT SESSION CONTAINER
+      const nextContainer = document.getElementById('next-session-container');
+      if (isWeekend) {
+        const nextMarket = calculateNextMarketOpenMonday(now, userTz);
+        const opensInMs = nextMarket.openUtc.getTime() - now.getTime();
+        const openTimeStr = formatTo12HourTime(nextMarket.openUtc, userTz);
+
+        nextContainer.innerHTML = `
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-cream-muted flex items-center gap-1.5">
+              <i data-lucide="clock" class="w-4 h-4 text-cream-muted"></i> Next Session
+            </span>
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-cream-cardAlt text-cream-muted border border-cream-border">
+              MONDAY
+            </span>
+          </div>
+
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-4xl">${nextMarket.session.flag}</span>
+            <div>
+              <h3 class="text-xl font-bold text-slate-900 leading-tight">${nextMarket.session.name.toUpperCase()}</h3>
+              <p class="text-xs text-cream-muted">${nextMarket.session.region} Session Opening</p>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-cream-cardAlt border border-cream-border flex items-center justify-between mt-auto">
+            <div>
+              <span class="text-[10px] uppercase font-bold text-cream-muted block">Opens Monday At</span>
+              <span class="font-mono font-semibold text-sm text-slate-800">${openTimeStr}</span>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] uppercase font-bold text-cream-muted block">Opens In</span>
+              <span class="font-mono font-bold text-base text-amber-600">${formatCountdown(opensInMs)}</span>
+            </div>
+          </div>
+        `;
+      } else {
+        const upcoming = [...sessionStatuses]
+          .filter(s => !s.isActive)
+          .sort((a, b) => a.opensInMs - b.opensInMs)[0];
+
+        if (upcoming) {
+          const openTimeStr = formatTo12HourTime(upcoming.nextOpenUtc, userTz);
+          nextContainer.innerHTML = `
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold uppercase tracking-wider text-cream-muted flex items-center gap-1.5">
+                <i data-lucide="arrow-right-circle" class="w-4 h-4 text-cream-muted"></i> Next Session
+              </span>
+              <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-cream-cardAlt text-cream-muted border border-cream-border">
+                UPCOMING
+              </span>
+            </div>
+
+            <div class="flex items-center gap-3 mb-4">
+              <span class="text-4xl">${upcoming.session.flag}</span>
+              <div>
+                <h3 class="text-xl font-bold text-slate-900 leading-tight">${upcoming.session.name.toUpperCase()}</h3>
+                <p class="text-xs text-cream-muted">${upcoming.session.region} · ${upcoming.session.currencies.join(', ')}</p>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-cream-cardAlt border border-cream-border flex items-center justify-between">
+              <div>
+                <span class="text-[10px] uppercase font-bold text-cream-muted block">Opens At</span>
+                <span class="font-mono font-semibold text-sm text-slate-800">${openTimeStr}</span>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] uppercase font-bold text-cream-muted block">Opens In</span>
+                <span class="font-mono font-bold text-base text-brand-600">${formatCountdown(upcoming.opensInMs)}</span>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      // 5. RENDER SESSION OVERLAPS
+      renderSessionOverlaps(now, userTz, isWeekend);
+
+      // 6. RENDER 24-HOUR TIMELINE VISUALIZER
+      renderFullDayTimeline(now, userTz, sessionStatuses, isWeekend);
+
+      // 7. RENDER INDIVIDUAL FOREX SESSION CARDS
+      renderSessionsGrid(now, userTz, sessionStatuses, isWeekend);
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // --- 6. OVERLAPS RENDER ENGINE ---
+    function renderSessionOverlaps(now, userTz, isWeekend) {
+      const container = document.getElementById('overlaps-list');
+      
+      const london = STANDARD_SESSIONS.find(s => s.id === 'london');
+      const ny = STANDARD_SESSIONS.find(s => s.id === 'new_york');
+      const tokyo = STANDARD_SESSIONS.find(s => s.id === 'tokyo');
+
+      const londonBounds = getSessionBoundsInUTC(london, now);
+      const nyBounds = getSessionBoundsInUTC(ny, now);
+      const tokyoBounds = getSessionBoundsInUTC(tokyo, now);
+
+      const lnyStart = new Date(Math.max(londonBounds.openUtc.getTime(), nyBounds.openUtc.getTime()));
+      const lnyEnd = new Date(Math.min(londonBounds.closeUtc.getTime(), nyBounds.closeUtc.getTime()));
+      const lnyActive = !isWeekend && now >= lnyStart && now < lnyEnd;
+
+      const tlStart = new Date(Math.max(tokyoBounds.openUtc.getTime(), londonBounds.openUtc.getTime()));
+      const tlEnd = new Date(Math.min(tokyoBounds.closeUtc.getTime(), londonBounds.closeUtc.getTime()));
+      const tlActive = !isWeekend && now >= tlStart && now < tlEnd;
+
+      container.innerHTML = `
+        <!-- London x New York Overlap Card -->
+        <div class="p-4 rounded-xl border ${lnyActive ? 'bg-amber-500/10 border-amber-500/40 glow-ny-london' : 'bg-cream-cardAlt border-cream-border'} flex flex-col justify-between transition-colors">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+              ⚡ 🇬🇧 LONDON × 🇺🇸 NEW YORK
+            </span>
+            ${lnyActive ? '<span class="text-[10px] font-extrabold px-2 py-0.5 rounded bg-amber-500 text-slate-900">ACTIVE OVERLAP</span>' : '<span class="text-[10px] text-cream-muted">PEAK VOLUME</span>'}
+          </div>
+          <div class="text-xs text-cream-muted mb-2">
+            The highest liquidity trading window of the 24h forex market. Major news & volatility.
+          </div>
+          <div class="flex items-center justify-between font-mono text-xs pt-2 border-t border-cream-border">
+            <span class="text-cream-muted">Schedule:</span>
+            <span class="font-bold text-slate-800">
+              ${formatTo12HourTime(lnyStart, userTz)} — ${formatTo12HourTime(lnyEnd, userTz)}
+            </span>
+          </div>
+        </div>
+
+        <!-- Tokyo x London Overlap Card -->
+        <div class="p-4 rounded-xl border ${tlActive ? 'bg-brand-500/10 border-brand-500/40 glow-active' : 'bg-cream-cardAlt border-cream-border'} flex flex-col justify-between transition-colors">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+              🇯🇵 TOKYO × 🇬🇧 LONDON
+            </span>
+            ${tlActive ? '<span class="text-[10px] font-extrabold px-2 py-0.5 rounded bg-brand-500 text-white">ACTIVE OVERLAP</span>' : '<span class="text-[10px] text-cream-muted">MODERATE LIQUIDITY</span>'}
+          </div>
+          <div class="text-xs text-cream-muted mb-2">
+            Early European session opening blending with Asian close. Excellent momentum for JPY and European pairs.
+          </div>
+          <div class="flex items-center justify-between font-mono text-xs pt-2 border-t border-cream-border">
+            <span class="text-cream-muted">Schedule:</span>
+            <span class="font-bold text-slate-800">
+              ${formatTo12HourTime(tlStart, userTz)} — ${formatTo12HourTime(tlEnd, userTz)}
+            </span>
+          </div>
+        </div>
+      `;
+    }
+
+    // --- 7. FULL-DAY TIMELINE RENDER ENGINE ---
+    function renderFullDayTimeline(now, userTz, sessionStatuses, isWeekend) {
+      const rowsContainer = document.getElementById('timeline-rows');
+      rowsContainer.innerHTML = '';
+
+      const tzParts = getTimezoneParts(now, userTz);
+      const dayFraction = (tzParts.hours * 3600 + tzParts.minutes * 60 + tzParts.seconds) / 86400;
+      const nowLine = document.getElementById('timeline-now-line');
+      
+      if (!isWeekend) {
+        nowLine.classList.remove('hidden');
+        nowLine.style.left = `${(dayFraction * 100).toFixed(2)}%`;
+      } else {
+        nowLine.classList.add('hidden');
+      }
+
+      sessionStatuses.forEach(st => {
+        const session = st.session;
+        const bounds = getSessionBoundsInUTC(session, now);
+
+        const userStartParts = getTimezoneParts(bounds.openUtc, userTz);
+        const userEndParts = getTimezoneParts(bounds.closeUtc, userTz);
+
+        const startFraction = (userStartParts.hours * 60 + userStartParts.minutes) / 1440;
+        let endFraction = (userEndParts.hours * 60 + userEndParts.minutes) / 1440;
+
+        const wraps = endFraction <= startFraction;
+
+        const row = document.createElement('div');
+        row.className = "relative h-8 bg-cream-cardAlt rounded-lg flex items-center px-3 border border-cream-border overflow-hidden";
+
+        let segmentsHtml = '';
+        const barColor = st.isActive && !isWeekend ? 'bg-brand-500 text-white shadow-sm' : 'bg-cream-subtle text-slate-700';
+
+        if (!wraps) {
+          const leftPct = (startFraction * 100).toFixed(2);
+          const widthPct = ((endFraction - startFraction) * 100).toFixed(2);
+          segmentsHtml = `
+            <div class="absolute top-1 bottom-1 ${barColor} rounded-md px-2 flex items-center text-[10px] font-bold overflow-hidden whitespace-nowrap transition-all duration-300" style="left:${leftPct}%; width:${widthPct}%">
+              ${session.flag} ${session.name}
+            </div>
+          `;
+        } else {
+          const left1Pct = (startFraction * 100).toFixed(2);
+          const width1Pct = ((1 - startFraction) * 100).toFixed(2);
+          const width2Pct = (endFraction * 100).toFixed(2);
+
+          segmentsHtml = `
+            <div class="absolute top-1 bottom-1 ${barColor} rounded-md px-2 flex items-center text-[10px] font-bold overflow-hidden whitespace-nowrap" style="left:${left1Pct}%; width:${width1Pct}%">
+              ${session.flag} ${session.name}
+            </div>
+            <div class="absolute top-1 bottom-1 ${barColor} rounded-md px-2 flex items-center text-[10px] font-bold overflow-hidden whitespace-nowrap" style="left:0%; width:${width2Pct}%">
+              ${session.flag} ${session.name}
+            </div>
+          `;
+        }
+
+        row.innerHTML = `
+          <div class="w-24 text-xs font-bold text-slate-700 flex items-center gap-1.5 z-10 shrink-0">
+            ${session.flag} ${session.name}
+          </div>
+          <div class="relative flex-grow h-full">
+            ${segmentsHtml}
+          </div>
+        `;
+
+        rowsContainer.appendChild(row);
+      });
+    }
+
+    // --- 8. FOREX SESSIONS CARDS GRID ENGINE ---
+    function renderSessionsGrid(now, userTz, sessionStatuses, isWeekend) {
+      const grid = document.getElementById('sessions-grid');
+      grid.innerHTML = '';
+
+      sessionStatuses.forEach(st => {
+        const session = st.session;
+        const bounds = getSessionBoundsInUTC(session, now);
+
+        const openTimeStr = formatTo12HourTime(bounds.openUtc, userTz);
+        const closeTimeStr = formatTo12HourTime(bounds.closeUtc, userTz);
+
+        const card = document.createElement('div');
+        card.className = `bg-cream-card rounded-2xl p-5 border ${st.isActive && !isWeekend ? 'border-brand-500/50 glow-active' : 'border-cream-border'} shadow-sm flex flex-col justify-between hover:border-cream-subtle transition-all cursor-pointer group`;
+        
+        card.addEventListener('click', () => openDetailsModal(session, st, openTimeStr, closeTimeStr));
+
+        card.innerHTML = `
+          <div>
+            <!-- Header -->
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span class="text-2xl">${session.flag}</span>
+                <div>
+                  <h4 class="font-bold text-base text-slate-900 leading-tight group-hover:text-brand-500 transition-colors">${session.name}</h4>
+                  <span class="text-[10px] text-cream-muted block">${session.region}</span>
+                </div>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${st.isActive && !isWeekend ? 'bg-brand-500/10 text-brand-500 border border-brand-500/20' : 'bg-cream-cardAlt text-cream-muted'}">
+                ${st.isActive && !isWeekend ? '● OPEN' : 'CLOSED'}
+              </span>
+            </div>
+
+            <!-- Times -->
+            <div class="space-y-1.5 mb-4">
+              <div class="text-xs font-mono font-medium text-slate-700 flex items-center justify-between">
+                <span class="text-cream-muted font-sans">Open:</span> ${openTimeStr}
+              </div>
+              <div class="text-xs font-mono font-medium text-slate-700 flex items-center justify-between">
+                <span class="text-cream-muted font-sans">Close:</span> ${closeTimeStr}
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer / Countdown -->
+          <div class="pt-3 border-t border-cream-border flex items-center justify-between text-xs">
+            <span class="text-cream-muted text-[11px]">
+              ${st.isActive && !isWeekend ? 'Closes in:' : 'Opens in:'}
+            </span>
+            <span class="font-mono font-bold ${st.isActive && !isWeekend ? 'text-brand-600' : 'text-slate-700'}">
+              ${formatCountdown(st.isActive && !isWeekend ? st.closesInMs : st.opensInMs)}
+            </span>
+          </div>
+        `;
+
+        grid.appendChild(card);
+      });
+    }
+
+    // --- 9. DETAILS MODAL ENGINE ---
+    function openDetailsModal(session, st, openTimeStr, closeTimeStr) {
+      document.getElementById('det-flag').textContent = session.flag;
+      document.getElementById('det-title').textContent = `${session.name} Session`;
+      document.getElementById('det-region').textContent = `${session.region} · Native TZ: ${session.timezone}`;
+
+      const isWeekend = checkIsWeekendInTimezone(new Date(), userSettings.timezone);
+      const isActive = st.isActive && !isWeekend;
+
+      const badge = document.getElementById('det-status-badge');
+      if (isActive) {
+        badge.className = "font-bold text-sm text-brand-600 flex items-center gap-1.5 mt-0.5";
+        badge.innerHTML = "● OPEN";
+        document.getElementById('det-timer-label').textContent = "Closes In";
+        document.getElementById('det-timer-val').textContent = formatCountdown(st.closesInMs);
+      } else {
+        badge.className = "font-bold text-sm text-cream-muted flex items-center gap-1.5 mt-0.5";
+        badge.innerHTML = "CLOSED";
+        document.getElementById('det-timer-label').textContent = "Opens In";
+        document.getElementById('det-timer-val').textContent = formatCountdown(st.opensInMs);
+      }
+
+      document.getElementById('det-time-local').textContent = `${openTimeStr} — ${closeTimeStr}`;
+      document.getElementById('det-tz-market').textContent = session.timezone;
+      document.getElementById('det-liquidity').textContent = `${session.liquidity || 'Normal'} / ${session.importance || 'Standard'}`;
+
+      const currContainer = document.getElementById('det-currencies');
+      currContainer.innerHTML = (session.currencies || ['USD']).map(c => `
+        <span class="px-2 py-0.5 rounded bg-brand-500/10 text-brand-600 text-xs font-mono font-bold">${c}</span>
+      `).join('');
+
+      document.getElementById('det-desc').textContent = session.description || 'Custom user created trading session.';
+
+      showModal('details-modal');
+    }
+
+    function showModal(id) {
+      const el = document.getElementById(id);
+      el.classList.remove('hidden');
+      setTimeout(() => {
+        el.classList.remove('opacity-0');
+      }, 10);
+    }
+
+    function hideModal(id) {
+      const el = document.getElementById(id);
+      el.classList.add('opacity-0');
+      setTimeout(() => {
+        el.classList.add('hidden');
+      }, 200);
+    }
+
+    // --- 10. SETTINGS & CUSTOM SESSIONS ENGINE ---
+    function initSettingsHandlers() {
+      document.getElementById('open-settings-btn').addEventListener('click', () => {
+        renderSettingsChecklist();
+        renderCustomSessionsList();
+        showModal('settings-modal');
+      });
+
+      document.getElementById('close-settings-btn').addEventListener('click', () => hideModal('settings-modal'));
+      document.getElementById('save-settings-btn').addEventListener('click', () => {
+        saveSettings();
+        updateDashboard();
+        hideModal('settings-modal');
+      });
+
+      document.getElementById('close-details-btn').addEventListener('click', () => hideModal('details-modal'));
+      document.getElementById('close-details-btn-2').addEventListener('click', () => hideModal('details-modal'));
+
+      document.getElementById('open-add-custom-btn').addEventListener('click', () => {
+        document.getElementById('custom-session-form').reset();
+        document.getElementById('cs-id').value = '';
+        document.getElementById('custom-modal-title').textContent = 'Create Custom Session';
+        populateCsTimezoneSelect();
+        showModal('custom-session-modal');
+      });
+
+      document.getElementById('close-custom-modal-btn').addEventListener('click', () => hideModal('custom-session-modal'));
+      document.getElementById('cancel-custom-modal-btn').addEventListener('click', () => hideModal('custom-session-modal'));
+
+      document.getElementById('custom-session-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = document.getElementById('cs-id').value || 'cs_' + Date.now();
+        const name = document.getElementById('cs-name').value.trim();
+        const startTime = document.getElementById('cs-start').value;
+        const endTime = document.getElementById('cs-end').value;
+        const timezone = document.getElementById('cs-timezone').value;
+        const description = document.getElementById('cs-desc').value.trim();
+
+        const newCustom = {
+          id,
+          name,
+          region: 'Custom',
+          flag: '⚡',
+          timezone,
+          startTime,
+          endTime,
+          isCustom: true,
+          currencies: ['N/A'],
+          liquidity: 'Custom',
+          importance: 'User Defined',
+          description,
+          enabled: true
+        };
+
+        const existingIdx = userSettings.customSessions.findIndex(c => c.id === id);
+        if (existingIdx >= 0) {
+          userSettings.customSessions[existingIdx] = newCustom;
+        } else {
+          userSettings.customSessions.push(newCustom);
+          if (!userSettings.visibleSessions.includes(id)) {
+            userSettings.visibleSessions.push(id);
+          }
+        }
+
+        saveSettings();
+        renderCustomSessionsList();
+        renderSettingsChecklist();
+        updateDashboard();
+        hideModal('custom-session-modal');
+      });
+    }
+
+    function populateCsTimezoneSelect() {
+      const select = document.getElementById('cs-timezone');
+      select.innerHTML = '';
+      TIMEZONES.forEach(tz => {
+        const opt = document.createElement('option');
+        opt.value = tz.id;
+        opt.textContent = tz.label;
+        if (tz.id === userSettings.timezone) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderSettingsChecklist() {
+      const container = document.getElementById('visible-sessions-checklist');
+      container.innerHTML = '';
+
+      const all = [...STANDARD_SESSIONS, ...userSettings.customSessions];
+      all.forEach(s => {
+        const label = document.createElement('label');
+        label.className = "flex items-center justify-between text-xs cursor-pointer select-none py-1";
+        const isChecked = userSettings.visibleSessions.includes(s.id);
+
+        label.innerHTML = `
+          <span class="font-medium text-slate-700 flex items-center gap-1.5">
+            ${s.flag} ${s.name} ${s.isCustom ? '<span class="text-[9px] bg-brand-500/10 text-brand-600 px-1 rounded">Custom</span>' : ''}
+          </span>
+          <input type="checkbox" data-session-id="${s.id}" ${isChecked ? 'checked' : ''} class="rounded border-slate-300 text-brand-500 focus:ring-brand-500 w-4 h-4">
+        `;
+
+        label.querySelector('input').addEventListener('change', (e) => {
+          const sid = e.target.dataset.sessionId;
+          if (e.target.checked) {
+            if (!userSettings.visibleSessions.includes(sid)) userSettings.visibleSessions.push(sid);
+          } else {
+            userSettings.visibleSessions = userSettings.visibleSessions.filter(x => x !== sid);
+          }
+        });
+
+        container.appendChild(label);
+      });
+    }
+
+    function renderCustomSessionsList() {
+      const container = document.getElementById('custom-sessions-list');
+      container.innerHTML = '';
+
+      if (userSettings.customSessions.length === 0) {
+        container.innerHTML = `<div class="text-xs text-cream-muted italic">No custom sessions created yet.</div>`;
+        return;
+      }
+
+      userSettings.customSessions.forEach(cs => {
+        const item = document.createElement('div');
+        item.className = "p-2.5 rounded-xl bg-cream-cardAlt border border-cream-border flex items-center justify-between text-xs";
+        item.innerHTML = `
+          <div>
+            <div class="font-bold text-slate-800">${cs.name}</div>
+            <div class="text-[10px] text-cream-muted font-mono">${cs.startTime} — ${cs.endTime} (${cs.timezone})</div>
+          </div>
+          <div class="flex items-center gap-1">
+            <button class="edit-cs-btn p-1 text-cream-muted hover:text-brand-600" data-id="${cs.id}">
+              <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+            </button>
+            <button class="delete-cs-btn p-1 text-cream-muted hover:text-red-500" data-id="${cs.id}">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        `;
+
+        item.querySelector('.edit-cs-btn').addEventListener('click', () => {
+          document.getElementById('cs-id').value = cs.id;
+          document.getElementById('cs-name').value = cs.name;
+          document.getElementById('cs-start').value = cs.startTime;
+          document.getElementById('cs-end').value = cs.endTime;
+          document.getElementById('cs-desc').value = cs.description || '';
+          populateCsTimezoneSelect();
+          document.getElementById('cs-timezone').value = cs.timezone;
+          document.getElementById('custom-modal-title').textContent = 'Edit Custom Session';
+          showModal('custom-session-modal');
+        });
+
+        item.querySelector('.delete-cs-btn').addEventListener('click', () => {
+          userSettings.customSessions = userSettings.customSessions.filter(c => c.id !== cs.id);
+          userSettings.visibleSessions = userSettings.visibleSessions.filter(id => id !== cs.id);
+          saveSettings();
+          renderCustomSessionsList();
+          renderSettingsChecklist();
+          updateDashboard();
+        });
+
+        container.appendChild(item);
+      });
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // --- 11. BOOTSTRAP INITIALIZATION ---
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSettings();
+      initTimezoneDropdown();
+      initSettingsHandlers();
+
+      // Initial Update
+      updateDashboard();
+
+      // Live 1-second Tick Loop
+      setInterval(updateDashboard, 1000);
+    });
+  </script>
+</body>
+</html>
